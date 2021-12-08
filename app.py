@@ -105,13 +105,15 @@ async def check_ip(request):
 
     return Response('FORBIDDEN', status_code=403)
 
+
 @app.route('/health')
 async def health(request):
     return Response('OK')
+
 
 @app.route('/clear_cache')
 async def clear_cache(request):
     app.state.cache = {}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=8000, proxy_headers=True, forwarded_allow_ips="*")
