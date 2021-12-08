@@ -12,7 +12,7 @@ app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
 def _format_cache(ip_allowlist, location_allowlist):
-    return "{ip_allowlist}%{location_allowlist}"
+    return f"{ip_allowlist}%{location_allowlist}"
 
 
 def _get_cache(ip, ip_allowlist, location_allowlist):
