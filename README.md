@@ -1,6 +1,6 @@
 # Simple GeoIP ForwardAuth for Traefik
 
-Return HTTP 200 is the IP is allowed to access services, HTTP 403 otherwise.
+Return HTTP 200 if the IP is allowed to access services, HTTP 403 otherwise.
 
 ## Preparation
 You will need the GeoLite2-City.mmdb database from MaxMind.
@@ -44,6 +44,8 @@ IPs is a comma-separated list of IPs or networks allowed. For example, to allow 
 127.0.0.1,192.168.0.0/16
 ```
 
+If an IP is put on the allowlist, it is allowed regardless of the location. This is the only way to whitelist IPs not in the GeoIP database.
+
 ## Setup
 *Note: in the setup steps, I will use the locations and ip example explained above*
 
@@ -52,7 +54,7 @@ Start the container into a bridge network called `geoipforwardauth`, giving it t
 On your Traefik container, add a label with URLencoded parameters stating the allowed sources:
 ```
 labels:
-- traefik.http.middlewares.simple-geoip.forwardauth.address=http://geoip:5000/?locations=NL;US:NV,VT,NY&ips=127.0.0.1,192.168.0.0/16
+- traefik.http.middlewares.simple-geoip.forwardauth.address=http://geoip:8000/?locations=NL;US:NV,VT,NY&ips=127.0.0.1,192.168.0.0/16
 ```
 
 Now, add this newly made simple-geoip middleware to the desired container labels:

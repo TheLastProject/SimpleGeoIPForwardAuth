@@ -1,2 +1,3 @@
-flask
 geoip2
+starlette
+uvicorn
