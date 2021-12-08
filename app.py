@@ -8,7 +8,7 @@ from starlette.responses import Response
 
 app = Starlette()
 app.state.cache = {}
-app.state.geoip = geoip2.database.Reader('db/GeoLite2-City.mmdb')
+app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
 def _format_cache(ip_allowlist, location_allowlist):
