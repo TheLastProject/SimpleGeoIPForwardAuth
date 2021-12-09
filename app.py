@@ -13,13 +13,11 @@ app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 @cache
 def _is_allowed(ip, ip_allowlist, location_allowlist):
-    # Check if IP is allowed explicitly
-    allowed = _in_ip_allowlist(ip, ip_allowlist)
-    if not allowed:
-        # Check if IP is in allowed area
-        allowed = _is_allowed_area(ip, location_allowlist)
-
-    return allowed
+    return (
+        _in_ip_allowlist(ip, ip_allowlist)
+        or
+        _is_allowed_area(ip, location_allowlist)
+    )
 
 
 def _in_ip_allowlist(ip, ip_allowlist):
