@@ -11,7 +11,7 @@ app = Starlette()
 app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
-@lru_cache(max_size=1024)
+@lru_cache(maxsize=1024)
 def _is_allowed(ip, ip_allowlist, location_allowlist):
     return (
         _in_ip_allowlist(ip, ip_allowlist)
