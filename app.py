@@ -1,4 +1,4 @@
-from functools import cache
+from functools import lru_cache
 import ipaddress
 
 import geoip2.database
@@ -11,7 +11,7 @@ app = Starlette()
 app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
-@cache
+@lru_cache(max_size=1024)
 def _is_allowed(ip, ip_allowlist, location_allowlist):
     return (
         _in_ip_allowlist(ip, ip_allowlist)
