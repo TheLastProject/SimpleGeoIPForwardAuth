@@ -1,3 +1,4 @@
+from functools import lru_cache
 import ipaddress
 
 import geoip2.database
@@ -7,45 +8,16 @@ from starlette.applications import Starlette
 from starlette.responses import Response
 
 app = Starlette()
-app.state.cache = {}
 app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
-def _format_cache(ip_allowlist, location_allowlist):
-    return f"{ip_allowlist}%{location_allowlist}"
-
-
-def _get_cache(ip, ip_allowlist, location_allowlist):
-    entry = _format_cache(ip_allowlist, location_allowlist)
-    if entry not in app.state.cache:
-        app.state.cache[entry] = {}
-
-    return app.state.cache[entry].get(ip, None)
-
-
-def _write_cache(ip, allowed, ip_allowlist, location_allowlist):
-    entry = _format_cache(ip_allowlist, location_allowlist)
-    if entry not in app.state.cache:
-        app.state.cache[entry] = {}
-
-    app.state.cache[entry][ip] = allowed
-
-
+@lru_cache(max_size=1024)
 def _is_allowed(ip, ip_allowlist, location_allowlist):
-    cache = _get_cache(ip, ip_allowlist, location_allowlist)
-
-    if cache is not None:
-        return cache
-
-    # Check if IP is allowed explicitly
-    allowed = _in_ip_allowlist(ip, ip_allowlist)
-    if not allowed:
-        # Check if IP is in allowed area
-        allowed = _is_allowed_area(ip, location_allowlist)
-
-    # Cache result
-    _write_cache(ip, allowed, ip_allowlist, location_allowlist)
-    return allowed
+    return (
+        _in_ip_allowlist(ip, ip_allowlist)
+        or
+        _is_allowed_area(ip, location_allowlist)
+    )
 
 
 def _in_ip_allowlist(ip, ip_allowlist):
@@ -113,7 +85,7 @@ async def health(request):
 
 @app.route('/clear_cache')
 async def clear_cache(request):
-    app.state.cache = {}
+    _is_allowed.cache_clear()
 
 if __name__ == "__main__":
     uvicorn.run(app, host='0.0.0.0', port=8000, proxy_headers=True, forwarded_allow_ips="*")
