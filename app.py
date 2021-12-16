@@ -42,7 +42,7 @@ def _is_allowed_area(ip, location_allowlist):
         return False
 
     iso_country = match.country.iso_code
-    iso_subdiv = match.subdivisions.most_specific.iso_code
+    iso_subdiv = match.subdivisions.most_specific.iso_code or "UNK"
 
     for entry in countries:
         if ":" in entry:
@@ -56,10 +56,10 @@ def _is_allowed_area(ip, location_allowlist):
                 print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
                 return True
             else:
-                for area in areas.split(","):
-                    if iso_subdiv == area:
-                        print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
-                        return True
+                if iso_subdiv in areas.split(","):
+                    print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
+                    return True
+
                 print(f"[DENY] {ip}: {iso_country} ({iso_subdiv})")
                 return False
 

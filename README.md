@@ -38,6 +38,8 @@ To allow all of the Netherlands and the above-named US states:
 NL;US:NV,VT,NY
 ```
 
+Sometimes, the MaxMind GeoIP database may not have area info. You can whitelist an unknown area using `UNK` as area.
+
 #### ips
 IPs is a comma-separated list of IPs or networks allowed. For example, to allow both 127.0.0.1 and 192.168.0.0/16 simply use:
 ```
