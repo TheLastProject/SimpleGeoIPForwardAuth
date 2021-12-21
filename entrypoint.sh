@@ -28,7 +28,7 @@ download_db() {
     fi
 
     echo "Downloading GeoLite2-City.mmdb"
-    curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${SIMPLE_GEOIP_FORWARDAUTH_MAXMIND_LICENSE_KEY}&suffix=tar.gz" | tar -C /db/ --wildcards --strip-components 1 -xzvf - '*/GeoLite2-City.mmdb'
+    curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${SIMPLE_GEOIP_FORWARDAUTH_MAXMIND_LICENSE_KEY}&suffix=tar.gz" | tar -zxf - --wildcards '*/GeoLite2-City.mmdb' -O > /db/GeoLite2-City.mmdb
 }
 
 update_db_if_needed 0

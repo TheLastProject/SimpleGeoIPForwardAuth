@@ -53,9 +53,10 @@ If an IP is put on the allowlist, it is allowed regardless of the location. This
 
 Start the container into a bridge network called `geoipforwardauth`, giving it the hostname `geoip`. Then, make sure your Traefik container is also in that network.
 
-On your Traefik container, add a label with URLencoded parameters stating the allowed sources:
+On the SimpleGeoIPForwardAuth container, add a label with URLencoded parameters stating the allowed sources:
 ```
 labels:
+- traefik.enable=true
 - traefik.http.middlewares.simple-geoip.forwardauth.address=http://geoip:8000/?locations=NL;US:NV,VT,NY&ips=127.0.0.1,192.168.0.0/16
 ```
 
