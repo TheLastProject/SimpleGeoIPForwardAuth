@@ -1,5 +1,6 @@
 from functools import lru_cache
 import ipaddress
+import random
 
 import geoip2.database
 
@@ -12,11 +13,11 @@ app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
 @lru_cache(maxsize=1024)
-def _is_allowed(ip, ip_allowlist, location_allowlist):
+def _is_allowed(ip, ip_allowlist, location_allowlist, log=True):
     return (
-        _in_ip_allowlist(ip, ip_allowlist)
+        _in_ip_allowlist(ip, ip_allowlist.split(",") if ip_allowlist else [])
         or
-        _is_allowed_area(ip, location_allowlist)
+        _is_allowed_area(ip, location_allowlist.split(";") if location_allowlist else [], log)
     )
 
 
@@ -32,19 +33,17 @@ def _in_ip_allowlist(ip, ip_allowlist):
     return False
 
 
-def _is_allowed_area(ip, location_allowlist):
-    countries = location_allowlist.split(";")
-
+def _is_allowed_area(ip, location_allowlist, log):
     try:
         match = app.state.geoip.city(ip)
     except geoip2.errors.AddressNotFoundError:
-        print(f"[DENY] {ip}: UNKNOWN REGION")
+        if log: print(f"[DENY] {ip}: UNKNOWN REGION")
         return False
 
     iso_country = match.country.iso_code
     iso_subdiv = match.subdivisions.most_specific.iso_code or "UNK"
 
-    for entry in countries:
+    for entry in location_allowlist:
         if ":" in entry:
             country, areas = entry.split(":", 1)
         else:
@@ -53,17 +52,17 @@ def _is_allowed_area(ip, location_allowlist):
 
         if iso_country == country:
             if areas is None:
-                print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
+                if log: print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
                 return True
             else:
                 if iso_subdiv in areas.split(","):
-                    print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
+                    if log: print(f"[ALLOW] {ip}: {iso_country} ({iso_subdiv})")
                     return True
 
-                print(f"[DENY] {ip}: {iso_country} ({iso_subdiv})")
+                if log: print(f"[DENY] {ip}: {iso_country} ({iso_subdiv})")
                 return False
 
-    print(f"[DENY] {ip}: {iso_country} ({iso_subdiv})")
+    if log: print(f"[DENY] {ip}: {iso_country} ({iso_subdiv})")
     return False
 
 
@@ -80,6 +79,24 @@ async def check_ip(request):
 
 @app.route('/health')
 async def health(request):
+    # As a health check we
+    # 1. Generate a random IPv4 and IPv6
+    # 2. Ensure they're blocked if we deny everything
+    # 3. Ensure they're allowed if we allow the IP
+    # If even this very basic checking doesn't work, something is clearly wrong
+
+    ips = [
+      ipaddress.IPv4Address._string_from_ip_int(random.randint(0, ipaddress.IPv4Address._ALL_ONES)),
+      ipaddress.IPv6Address._string_from_ip_int(random.randint(0, ipaddress.IPv6Address._ALL_ONES))
+    ]
+
+    for ip in ips:
+        if _is_allowed(ip, '', '', False):
+            return Response(f"Container allowed {ip} when blocking all", status_code=500)
+
+        if not _is_allowed(ip, ip, '', False):
+            return Response(f"Container blocked {ip} despite it being on allowlist", status_code=500)
+
     return Response('OK')
 
 
