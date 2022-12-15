@@ -1,6 +1,7 @@
 #!/bin/sh
 
 DB=/db/GeoLite2-City.mmdb
+DB_TMP=/tmp/GeoLite2-City.mmdb
 
 update_db_if_needed() {
 # $1 = clear cache
@@ -28,7 +29,15 @@ download_db() {
     fi
 
     echo "Downloading GeoLite2-City.mmdb"
-    curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${SIMPLE_GEOIP_FORWARDAUTH_MAXMIND_LICENSE_KEY}&suffix=tar.gz" | tar -zxf - --wildcards '*/GeoLite2-City.mmdb' -O > /db/GeoLite2-City.mmdb
+    curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${SIMPLE_GEOIP_FORWARDAUTH_MAXMIND_LICENSE_KEY}&suffix=tar.gz" | tar -zxf - --wildcards '*/GeoLite2-City.mmdb' -O > "${DB_TMP}"
+
+    echo "Testing new DB"
+    if python3 test_db.py "${DB_TMP}"; then
+        echo "DB passed test"
+        mv "${DB_TMP}" "${DB}"
+    else
+        echo "DB failed to verify, not replacing old DB..."
+    fi
 }
 
 update_db_if_needed 0

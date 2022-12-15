@@ -9,7 +9,10 @@ from starlette.applications import Starlette
 from starlette.responses import Response
 
 app = Starlette()
-app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
+
+
+def _load_geoip_db():
+    app.state.geoip = geoip2.database.Reader('/db/GeoLite2-City.mmdb')
 
 
 @lru_cache(maxsize=1024)
@@ -103,8 +106,10 @@ async def health(request):
 @app.route('/clear_cache')
 async def clear_cache(request):
     _is_allowed.cache_clear()
+    _load_geoip_db()
 
     return Response('OK')
 
 if __name__ == "__main__":
+    _load_geoip_db()
     uvicorn.run(app, host='0.0.0.0', port=8000, proxy_headers=True, forwarded_allow_ips="*")
