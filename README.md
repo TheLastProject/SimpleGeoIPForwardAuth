@@ -51,7 +51,7 @@ If an IP is put on the allowlist, it is allowed regardless of the location. This
 ## Setup
 *Note: in the setup steps, I will use the locations and ip example explained above*
 
-Start the container into a bridge network called `geoipforwardauth`, giving it the hostname `geoip`. Then, make sure your Traefik container is also in that network.
+Tip: To separate your containers, start the SimpleGeoIPForwardAuth container into a bridge network called `geoipforwardauth`, giving it the hostname `geoip`. Then, make sure your Traefik container is also in that network.
 
 On the SimpleGeoIPForwardAuth container, add a label with URLencoded parameters stating the allowed sources:
 ```
@@ -64,4 +64,46 @@ Now, add this newly made simple-geoip middleware to the desired container labels
 ```
 labels:
 - traefik.http.routers.my_route.middlewares=simple-geoip@docker
+```
+
+### Docker Compose example
+
+Below is a simple example in Docker-compose because many people like to copy-paste. This does not use a new bridge network to keep the example simple. For a real deployment, you will likely want to set up SSL too.
+
+```
+version: '3'
+
+services:
+  reverse-proxy:
+    # The official Traefik docker image
+    image: traefik
+    # Tells Traefik to listen to docker but not expose services by default
+    command: --providers.docker --providers.docker.exposedByDefault=false
+    ports:
+      # The HTTP port
+      - "80:80"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+  whoami:
+    # A container that exposes an API to show its IP address
+    image: traefik/whoami
+    labels:
+      # Expose the whoami service to the Internet
+      - "traefik.enable=true"
+      # Where your whoami service is reachable (obviously, you won't own whoami.example.com, so change this)
+      - "traefik.http.routers.whoami.rule=Host(`whoami.example.com`)"
+      # Tell Traefik to check every request with simple-geoip
+      - "traefik.http.routers.whoami.middlewares=geoip@docker"
+  geoip:
+    # Use the Docker image I provide (built with GitHub Actions)
+    image: thelastproject/simplegeoipforwardauth
+    labels:
+      # Expose the geoip container to Traefik. Nobody can directly access it because there's no router attached to it
+      - "traefik.enable=true"
+      # Create a Middleware called simple-geoip with the above rules
+      - "traefik.http.middlewares.simple-geoip.forwardauth.address=http://geoip:8000/?locations=NL;US:NV,VT,NY&ips=127.0.0.1,192.168.0.0/16"
+    volumes:
+      # Maxmind GeoIP database
+      - path_to_your/GeoLite2-City.mmdb:/db/GeoLite2-City.mmdb
 ```
