@@ -7,8 +7,7 @@ import geoip2.database
 import uvicorn
 from starlette.applications import Starlette
 from starlette.responses import Response
-
-app = Starlette()
+from starlette.routing import Route
 
 
 def _load_geoip_db():
@@ -69,7 +68,6 @@ def _is_allowed_area(ip, location_allowlist, log):
     return False
 
 
-@app.route('/')
 async def check_ip(request):
     location_allowlist = request.query_params.get('locations', default='')
     ip_allowlist = request.query_params.get('ips', default='')
@@ -80,7 +78,6 @@ async def check_ip(request):
     return Response('FORBIDDEN', status_code=403)
 
 
-@app.route('/health')
 async def health(request):
     # As a health check we
     # 1. Generate a random IPv4 and IPv6
@@ -103,7 +100,6 @@ async def health(request):
     return Response('OK')
 
 
-@app.route('/clear_cache')
 async def clear_cache(request):
     _is_allowed.cache_clear()
     _load_geoip_db()
@@ -111,5 +107,13 @@ async def clear_cache(request):
     return Response('OK')
 
 if __name__ == "__main__":
+    routes = [
+        Route("/", endpoint=check_ip),
+        Route("/health", endpoint=health),
+        Route("/clear_cache", endpoint=clear_cache)
+    ]
+
+    app = Starlette(routes=routes)
+
     _load_geoip_db()
     uvicorn.run(app, host='0.0.0.0', port=8000, proxy_headers=True, forwarded_allow_ips="*")
